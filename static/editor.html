@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Monaco Editor</title>
+    <style>
+    body {
+        margin: 0;
+    }
+
+    #editor {
+        height: 100dvh;
+        width: 100dvw;
+    }
+    </style>
+</head>
+<body>
+    <div id="editor"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.51.0/min/vs/loader.min.js"></script>
+    <script>
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.51.0/min/vs' } })
+        require(['vs/editor/editor.main'], function() {
+            let language = 'javascript' // Default language
+            let path = window.location.pathname
+
+            // Map file extensions to languages
+            const languageMap = {
+                '.js': 'javascript',
+                '.ts': 'typescript',
+                '.html': 'html',
+                '.css': 'css',
+                '.json': 'json',
+                '.xml': 'xml',
+                '.py': 'python',
+                '.java': 'java',
+                '.cpp': 'cpp',
+                '.c': 'c',
+                '.cs': 'csharp',
+                '.php': 'php',
+                '.r': 'r',
+                '.rb': 'ruby',
+                '.go': 'go',
+                // Add more file extensions and corresponding languages here
+            }
+
+            // Function to extract the file extension
+            function getFileExtension(filename) {
+                return filename.substring(filename.lastIndexOf('.'))
+            }
+
+            const fileExtension = getFileExtension(path)
+            if (languageMap[fileExtension]) {
+                language = languageMap[fileExtension]
+            }
+
+            const editor = monaco.editor.create(document.getElementById('editor'), {
+                value: '',
+                language: language,
+                theme: 'vs-dark'
+            })
+
+            let originalContent = ''
+
+            fetch(`/file${path}`).then(response => response.text()).then(data => {
+                if (data) {
+                    originalContent = data
+                    editor.setValue(data)
+                }
+            })
+
+            editor.onDidChangeModelContent(() => {
+                if (editor.getValue() !== originalContent) {
+                    document.title = 'Monaco Editor *'
+                } else {
+                    document.title = 'Monaco Editor'
+                }
+            })
+
+            window.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault() // Prevent the default save dialog
+
+                    fetch("/save", {
+                        method: "POST",
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            path: path.replace("/", ""),
+                            content: editor.getValue()
+                        })
+                    }).then(response => {
+                        if (response.ok) {
+                            originalContent = editor.getValue() // Update original content to current content
+                            document.title = 'Monaco Editor' // Remove asterisk from title
+                            alert('Saved successfully')
+                        } else {
+                            alert('Save failed')
+                        }
+                    })
+
+                    return false
+                }
+            })
+        })
+    </script>
+</body>
+</html>
