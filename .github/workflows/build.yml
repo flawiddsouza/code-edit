@@ -15,7 +15,7 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact_name: binary-linux
-            binary_path: ./target/release/code-edit
+            binary_path: ./target/x86_64-unknown-linux-musl/release/code-edit
             upload_name: code-edit-linux
           - os: windows-latest
             artifact_name: binary-windows
@@ -35,8 +35,17 @@ jobs:
       with:
         toolchain: stable
 
-    - name: Build
+    - name: Install cross
+      if: matrix.os == 'ubuntu-latest'
+      run: cargo install cross
+
+    - name: Build for ${{ matrix.os }}
+      if: matrix.os == 'windows-latest' || matrix.os == 'macos-latest'
       run: cargo build --release
+
+    - name: Build for ${{ matrix.os }}
+      if: matrix.os == 'ubuntu-latest'
+      run: cross build --release --target x86_64-unknown-linux-musl
 
     - name: Rename binary
       run: mv ${{ matrix.binary_path }} ${{ matrix.upload_name }}
