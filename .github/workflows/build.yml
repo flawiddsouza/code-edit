@@ -16,12 +16,15 @@ jobs:
           - os: ubuntu-latest
             artifact_name: binary-linux
             binary_path: ./target/release/code-edit
+            upload_name: code-edit-linux
           - os: windows-latest
             artifact_name: binary-windows
             binary_path: ./target/release/code-edit.exe
+            upload_name: code-edit-windows.exe
           - os: macos-latest
             artifact_name: binary-macos
             binary_path: ./target/release/code-edit
+            upload_name: code-edit-macos
 
     steps:
     - name: Checkout code
@@ -35,8 +38,12 @@ jobs:
     - name: Build
       run: cargo build --release
 
-    - name: Upload binary to artifacts
-      uses: actions/upload-artifact@v4
+    - name: Rename binary
+      run: mv ${{ matrix.binary_path }} ${{ matrix.upload_name }}
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
       with:
-        name: ${{ matrix.artifact_name }}
-        path: ${{ matrix.binary_path }}
+        files: ${{ matrix.upload_name }}
+        generate_release_notes: true
