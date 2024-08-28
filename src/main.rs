@@ -1,5 +1,4 @@
-use actix_files::NamedFile;
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest, middleware::Logger};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, middleware::Logger};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::File, io::Read, path::PathBuf, sync::Mutex};
 use uuid::Uuid;
@@ -18,8 +17,9 @@ lazy_static! {
 }
 
 #[get("/{uuid}")]
-async fn serve_editor(req: HttpRequest) -> impl Responder {
-    NamedFile::open("static/editor.html").unwrap().into_response(&req)
+async fn serve_editor() -> impl Responder {
+    let html_content = include_str!("../static/editor.html");
+    HttpResponse::Ok().content_type("text/html").body(html_content)
 }
 
 #[get("/file/{uuid}")]
