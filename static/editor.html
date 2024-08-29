@@ -16,62 +16,59 @@
 </head>
 <body>
     <div id="editor"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.51.0/min/vs/loader.min.js"></script>
-    <script>
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.51.0/min/vs' } })
-        require(['vs/editor/editor.main'], function() {
-            const editor = monaco.editor.create(document.getElementById('editor'), {
-                value: '',
-                language: 'plaintext',
-                theme: 'vs-dark'
-            })
+    <script type="module">
+        import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.51.0/+esm'
 
-            let originalContent = ''
+        const editor = monaco.editor.create(document.getElementById('editor'), {
+            value: '',
+            language: 'plaintext',
+            theme: 'vs-dark'
+        })
 
-            let path = window.location.pathname
+        let originalContent = ''
 
-            fetch(`/file${path}`).then(response => response.json()).then(data => {
-                originalContent = data.content
-                editor.setValue(data.content)
-                document.title = data.name
+        let path = window.location.pathname
 
-                const model = monaco.editor.createModel(data.content, undefined, monaco.Uri.file(data.name))
-                
-                editor.setModel(model)
-            })
+        fetch(`/file${path}`).then(response => response.json()).then(data => {
+            originalContent = data.content
+            editor.setValue(data.content)
+            document.title = data.name
 
-            editor.onDidChangeModelContent(() => {
-                if (editor.getValue() !== originalContent) {
-                    document.title = document.title.replace('*', '') + ' *'
-                } else {
-                    document.title = document.title.replace('*', '')
-                }
-            })
+            const model = monaco.editor.createModel(data.content, undefined, monaco.Uri.file(data.name))
+            editor.setModel(model)
+        })
 
-            window.addEventListener('keydown', function(e) {
-                if (e.ctrlKey && e.key === 's') {
-                    e.preventDefault() // Prevent the default save dialog
+        editor.onDidChangeModelContent(() => {
+            if (editor.getValue() !== originalContent) {
+                document.title = document.title.replace('*', '') + ' *'
+            } else {
+                document.title = document.title.replace('*', '')
+            }
+        })
 
-                    fetch('/save', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            path: path.replace('/', ''),
-                            content: editor.getValue()
-                        })
-                    }).then(response => {
-                        if (response.ok) {
-                            originalContent = editor.getValue() // Update original content to current content
-                            document.title = document.title.replace('*', '') // Remove asterisk from title
-                            alert('Saved successfully')
-                        } else {
-                            alert('Save failed')
-                        }
+        window.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault() // Prevent the default save dialog
+
+                fetch('/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: path.replace('/', ''),
+                        content: editor.getValue()
                     })
+                }).then(response => {
+                    if (response.ok) {
+                        originalContent = editor.getValue() // Update original content to current content
+                        document.title = document.title.replace('*', '') // Remove asterisk from title
+                        alert('Saved successfully')
+                    } else {
+                        alert('Save failed')
+                    }
+                })
 
-                    return false
-                }
-            })
+                return false
+            }
         })
     </script>
 </body>
