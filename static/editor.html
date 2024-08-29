@@ -20,51 +20,24 @@
     <script>
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.51.0/min/vs' } })
         require(['vs/editor/editor.main'], function() {
-            let language = 'javascript' // Default language
-            let path = window.location.pathname
-
-            // Map file extensions to languages
-            const languageMap = {
-                '.js': 'javascript',
-                '.ts': 'typescript',
-                '.html': 'html',
-                '.css': 'css',
-                '.json': 'json',
-                '.xml': 'xml',
-                '.py': 'python',
-                '.java': 'java',
-                '.cpp': 'cpp',
-                '.c': 'c',
-                '.cs': 'csharp',
-                '.php': 'php',
-                '.r': 'r',
-                '.rb': 'ruby',
-                '.go': 'go',
-                // Add more file extensions and corresponding languages here
-            }
-
-            // Function to extract the file extension
-            function getFileExtension(filename) {
-                return filename.substring(filename.lastIndexOf('.'))
-            }
-
-            const fileExtension = getFileExtension(path)
-            if (languageMap[fileExtension]) {
-                language = languageMap[fileExtension]
-            }
-
             const editor = monaco.editor.create(document.getElementById('editor'), {
                 value: '',
-                language: language,
+                language: 'plaintext',
                 theme: 'vs-dark'
             })
 
             let originalContent = ''
 
+            let path = window.location.pathname
+
             fetch(`/file${path}`).then(response => response.json()).then(data => {
                 originalContent = data.content
                 editor.setValue(data.content)
                 document.title = data.name
+
+                const model = monaco.editor.createModel(data.content, undefined, monaco.Uri.file(data.name))
+                
+                editor.setModel(model)
             })
 
             editor.onDidChangeModelContent(() => {
@@ -79,11 +52,11 @@
                 if (e.ctrlKey && e.key === 's') {
                     e.preventDefault() // Prevent the default save dialog
 
-                    fetch("/save", {
-                        method: "POST",
+                    fetch('/save', {
+                        method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            path: path.replace("/", ""),
+                            path: path.replace('/', ''),
                             content: editor.getValue()
                         })
                     }).then(response => {
