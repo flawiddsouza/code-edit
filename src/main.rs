@@ -27,12 +27,13 @@ async fn get_file_content(uuid: web::Path<Uuid>) -> impl Responder {
     let file_map = FILE_MAP.lock().unwrap();
     if let Some(file_path) = file_map.get(&uuid) {
         let mut file_content = String::new();
-        if !PathBuf::from(file_path).exists() {
+        let path_buf = PathBuf::from(file_path);
+        if !path_buf.exists() {
             file_content = String::new();
-        } else if File::open(file_path).and_then(|mut file| file.read_to_string(&mut file_content)).is_err() {
+        } else if File::open(&path_buf).and_then(|mut file| file.read_to_string(&mut file_content)).is_err() {
             return HttpResponse::InternalServerError().body("Error reading file");
         }
-        HttpResponse::Ok().body(file_content)
+        HttpResponse::Ok().json(serde_json::json!({ "content": file_content, "name": file_path }))
     } else {
         HttpResponse::NotFound().body("File not found")
     }

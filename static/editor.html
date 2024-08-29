@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Monaco Editor</title>
+    <title>Code Edit</title>
     <style>
     body {
         margin: 0;
@@ -61,18 +61,17 @@
 
             let originalContent = ''
 
-            fetch(`/file${path}`).then(response => response.text()).then(data => {
-                if (data) {
-                    originalContent = data
-                    editor.setValue(data)
-                }
+            fetch(`/file${path}`).then(response => response.json()).then(data => {
+                originalContent = data.content
+                editor.setValue(data.content)
+                document.title = data.name
             })
 
             editor.onDidChangeModelContent(() => {
                 if (editor.getValue() !== originalContent) {
-                    document.title = 'Monaco Editor *'
+                    document.title = document.title.replace('*', '') + ' *'
                 } else {
-                    document.title = 'Monaco Editor'
+                    document.title = document.title.replace('*', '')
                 }
             })
 
@@ -90,7 +89,7 @@
                     }).then(response => {
                         if (response.ok) {
                             originalContent = editor.getValue() // Update original content to current content
-                            document.title = 'Monaco Editor' // Remove asterisk from title
+                            document.title = document.title.replace('*', '') // Remove asterisk from title
                             alert('Saved successfully')
                         } else {
                             alert('Save failed')
