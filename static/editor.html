@@ -12,6 +12,17 @@
         margin: 0;
     }
 
+    body.loading {
+        display: none;
+    }
+
+    body.error {
+        background-color: #333;
+        color: white;
+        font-family: monospace;
+        padding: 10px;
+    }
+
     main {
         display: grid;
         grid-template-rows: 1fr auto;
@@ -42,7 +53,7 @@
     .monaco-editor { position: absolute !important; }
     </style>
 </head>
-<body>
+<body class="loading">
     <main>
         <div id="editor"></div>
         <div id="status-bar">
@@ -77,7 +88,13 @@
             document.getElementById('language-selector').appendChild(option)
         })
 
-        fetch(`/file${path}`).then(response => response.json()).then(data => {
+        fetch(`/file${path}`).then(async response => {
+            if (!response.ok) {
+                const responseText = await response.text()
+                throw new Error(responseText)
+            }
+            return response.json()
+        }).then(data => {
             originalContent = data.content
             editor.setValue(data.content)
             document.title = data.name
@@ -87,6 +104,11 @@
 
             const languageId = model.getLanguageId()
             document.getElementById('language-selector').value = languageId
+        }).catch(error => {
+            document.body.classList.add('error')
+            document.body.textContent = error.message
+        }).finally(() => {
+            document.body.classList.remove('loading')
         })
 
         editor.onDidChangeModelContent(() => {
