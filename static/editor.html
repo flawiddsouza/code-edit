@@ -37,6 +37,9 @@
         border-radius: 5px;
         outline: none;
     }
+
+    /* From: https://stackoverflow.com/a/71876526/4932305 */
+    .monaco-editor { position: absolute !important; }
     </style>
 </head>
 <body>
@@ -52,7 +55,8 @@
         const editor = monaco.editor.create(document.getElementById('editor'), {
             value: '',
             language: 'plaintext',
-            theme: 'vs-dark'
+            theme: 'vs-dark',
+            automaticLayout: true,
         })
 
         let originalContent = ''
