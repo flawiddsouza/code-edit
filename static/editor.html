@@ -4,18 +4,48 @@
     <meta charset="UTF-8">
     <title>Code Edit</title>
     <style>
+    html, body {
+        height: 100%;
+    }
+
     body {
         margin: 0;
     }
 
+    main {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        height: 100%;
+    }
+
     #editor {
-        height: 100dvh;
-        width: 100dvw;
+        height: 100%;        
+    }
+
+    #status-bar {
+        display: flex;
+        justify-content: flex-end;
+        padding: 5px;
+        background-color: #333;
+    }
+
+    #language-selector {
+        padding: 5px;
+        background-color: #333;
+        color: white;
+        border: 1px solid #777777;
+        border-radius: 5px;
+        outline: none;
     }
     </style>
 </head>
 <body>
-    <div id="editor"></div>
+    <main>
+        <div id="editor"></div>
+        <div id="status-bar">
+            <select id="language-selector"></select>
+        </div>
+    </main>
     <script type="module">
         import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.51.0/+esm'
 
@@ -29,6 +59,13 @@
 
         let path = window.location.pathname
 
+        monaco.languages.getLanguages().forEach(lang => {
+            const option = document.createElement('option')
+            option.value = lang.id
+            option.textContent = lang.aliases ? lang.aliases[0] : lang.id
+            document.getElementById('language-selector').appendChild(option)
+        })
+
         fetch(`/file${path}`).then(response => response.json()).then(data => {
             originalContent = data.content
             editor.setValue(data.content)
@@ -36,6 +73,9 @@
 
             const model = monaco.editor.createModel(data.content, undefined, monaco.Uri.file(data.name))
             editor.setModel(model)
+
+            const languageId = model.getLanguageId()
+            document.getElementById('language-selector').value = languageId
         })
 
         editor.onDidChangeModelContent(() => {
@@ -44,6 +84,12 @@
             } else {
                 document.title = document.title.replace('*', '')
             }
+        })
+
+        document.getElementById('language-selector').addEventListener('change', function() {
+            const newLanguage = this.value
+            const currentModel = editor.getModel()
+            monaco.editor.setModelLanguage(currentModel, newLanguage)
         })
 
         window.addEventListener('keydown', function(e) {
