@@ -58,20 +58,31 @@ async fn save_file(web::Json(request): web::Json<SaveRequest>) -> impl Responder
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args: Vec<String> = get_args().collect();
-    if args.contains(&"--logs".to_string()) {
+    let mut enable_logs = false;
+    let mut file_paths = Vec::new();
+
+    for arg in &args[1..] {
+        if arg == "--logs" {
+            enable_logs = true;
+        } else {
+            file_paths.push(arg.clone());
+        }
+    }
+
+    if enable_logs {
         env_logger::init_from_env(env_logger::Env::new().default_filter_or("actix_web=info,actix_server=warn"));
     }
 
-    if args.len() < 2 || args.len() > 3 {
-        eprintln!("Usage: code-edit <file-path> [--logs]");
+    if file_paths.is_empty() {
+        eprintln!("Usage: code-edit <file-path>... [--logs]");
         return Ok(());
     }
 
-    let path = &args[1].clone();
-    let uuid = Uuid::new_v4();
-    FILE_MAP.lock().unwrap().insert(uuid, path.to_string());
-
-    println!("Open: http://localhost:6044/{}", uuid);
+    for path in file_paths {
+        let uuid = Uuid::new_v4();
+        FILE_MAP.lock().unwrap().insert(uuid, path.to_string());
+        println!("Open: http://localhost:6044/{} (File: {})", uuid, path);
+    }
 
     HttpServer::new(|| {
         App::new()
