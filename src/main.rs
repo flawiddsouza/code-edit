@@ -92,7 +92,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_file_content)
             .service(save_file)
     })
-    .bind("127.0.0.1:6044")?
+    .bind("0.0.0.0:6044")?
     .run()
     .await
 }
