@@ -1,7 +1,8 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, middleware::Logger};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, middleware::Logger, rt::System};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::File, io::Read, path::PathBuf, sync::Mutex};
 use uuid::Uuid;
+use pnet::datalink;
 use lazy_static::lazy_static;
 use std::env::args as get_args;
 use std::fs;
@@ -56,43 +57,63 @@ async fn save_file(web::Json(request): web::Json<SaveRequest>) -> impl Responder
     HttpResponse::Ok().body("File saved.")
 }
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    let args: Vec<String> = get_args().collect();
-    let mut enable_logs = false;
-    let mut file_paths = Vec::new();
+fn get_network_interfaces() -> Vec<String> {
+    datalink::interfaces()
+        .into_iter()
+        .filter_map(|iface| {
+            iface.ips.iter().find_map(|ip| {
+                if ip.is_ipv4() {
+                    Some(format!("http://{}:6044", ip.ip()))
+                } else {
+                    None
+                }
+            })
+        })
+        .collect()
+}
+fn main() -> std::io::Result<()> {
+    System::new().block_on(async {
+        let args: Vec<String> = get_args().collect();
+        let mut enable_logs = false;
+        let mut file_paths = Vec::new();
 
-    for arg in &args[1..] {
-        if arg == "--logs" {
-            enable_logs = true;
-        } else {
-            file_paths.push(arg.clone());
+        for arg in &args[1..] {
+            if arg == "--logs" {
+                enable_logs = true;
+            } else {
+                file_paths.push(arg.clone());
+            }
         }
-    }
 
-    if enable_logs {
-        env_logger::init_from_env(env_logger::Env::new().default_filter_or("actix_web=info,actix_server=warn"));
-    }
+        if enable_logs {
+            env_logger::init_from_env(env_logger::Env::new().default_filter_or("actix_web=info,actix_server=warn"));
+        }
 
-    if file_paths.is_empty() {
-        eprintln!("Usage: code-edit <file-path>... [--logs]");
-        return Ok(());
-    }
+        if file_paths.is_empty() {
+            eprintln!("Usage: code-edit <file-path>... [--logs]");
+            return Ok(());
+        }
 
-    for path in file_paths {
-        let uuid = Uuid::new_v4();
-        FILE_MAP.lock().unwrap().insert(uuid, path.to_string());
-        println!("Open: http://localhost:6044/{} (File: {})", uuid, path);
-    }
+        let network_urls = get_network_interfaces();
 
-    HttpServer::new(|| {
-        App::new()
-            .wrap(Logger::default())
-            .service(serve_editor)
-            .service(get_file_content)
-            .service(save_file)
+        for path in &file_paths {
+            let uuid = Uuid::new_v4();
+            FILE_MAP.lock().unwrap().insert(uuid, path.to_string());
+            println!("Edit {} at the following URLs:", path);
+            for url in &network_urls {
+                println!("  {}/{}", url, uuid);
+            }
+        }
+
+        HttpServer::new(|| {
+            App::new()
+                .wrap(Logger::default())
+                .service(serve_editor)
+                .service(get_file_content)
+                .service(save_file)
+        })
+        .bind("0.0.0.0:6044")?
+        .run()
+        .await
     })
-    .bind("0.0.0.0:6044")?
-    .run()
-    .await
 }
