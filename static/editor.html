@@ -51,6 +51,7 @@
     </main>
     <script type="module">
         import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.51.0/+esm'
+        import 'https://cdn.jsdelivr.net/npm/monaco-editor-nginx@2.0.2/+esm'
 
         const editor = monaco.editor.create(document.getElementById('editor'), {
             value: '',
@@ -63,7 +64,13 @@
 
         let path = window.location.pathname
 
-        monaco.languages.getLanguages().forEach(lang => {
+        const sortedLanguages = monaco.languages.getLanguages().slice(0).sort((a, b) => {
+            const aName = a.aliases ? a.aliases[0] : a.id
+            const bName = b.aliases ? b.aliases[0] : b.id
+            return aName.localeCompare(bName)
+        })
+
+        sortedLanguages.forEach(lang => {
             const option = document.createElement('option')
             option.value = lang.id
             option.textContent = lang.aliases ? lang.aliases[0] : lang.id
