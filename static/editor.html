@@ -30,7 +30,7 @@
     }
 
     #editor {
-        height: 100%;        
+        height: 100%;
     }
 
     #status-bar {
@@ -51,6 +51,10 @@
 
     /* From: https://stackoverflow.com/a/71876526/4932305 */
     .monaco-editor { position: absolute !important; }
+
+    .trailing-spaces-highlight {
+        background-color: rgba(255, 0, 0, 0.3);
+    }
     </style>
 </head>
 <body class="loading">
@@ -63,6 +67,7 @@
     <script type="module">
         import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.51.0/+esm'
         import 'https://cdn.jsdelivr.net/npm/monaco-editor-nginx@2.0.2/+esm'
+        import * as trailingSpaces from './libs/trailing-spaces.js'
 
         const editor = monaco.editor.create(document.getElementById('editor'), {
             value: '',
@@ -104,6 +109,8 @@
 
             const languageId = model.getLanguageId()
             document.getElementById('language-selector').value = languageId
+
+            trailingSpaces.updateDecorations(editor)
         }).catch(error => {
             document.body.classList.add('error')
             document.body.textContent = error.message
@@ -112,6 +119,7 @@
         })
 
         editor.onDidChangeModelContent(() => {
+            trailingSpaces.updateDecorations(editor)
             if (editor.getValue() !== originalContent) {
                 document.title = document.title.replace('*', '') + ' *'
             } else {
