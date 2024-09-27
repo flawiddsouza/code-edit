@@ -17,6 +17,12 @@ lazy_static! {
     static ref FILE_MAP: Mutex<HashMap<Uuid, String>> = Mutex::new(HashMap::new());
 }
 
+#[get("/main.js")]
+async fn serve_main_js() -> impl Responder {
+    let js_content = include_str!("../static/main.js");
+    HttpResponse::Ok().content_type("application/javascript").body(js_content)
+}
+
 #[get("/libs/trailing-spaces.js")]
 async fn serve_lib_trailing_spaces_js() -> impl Responder {
     let js_content = include_str!("../static/libs/trailing-spaces.js");
@@ -114,6 +120,7 @@ fn main() -> std::io::Result<()> {
         HttpServer::new(|| {
             App::new()
                 .wrap(Logger::default())
+                .service(serve_main_js)
                 .service(serve_lib_trailing_spaces_js)
                 .service(serve_editor)
                 .service(get_file_content)
